@@ -3,6 +3,7 @@ import { Card, Descriptions, Button } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import PFDAO from "../../objetos/dao/PFDAOLocalV2.mjs";
 import PJDAO from "../../objetos/dao/PJDAOLocalV2.mjs";
+import dayjs from "dayjs";
 
 export default function VisualizaPessoa() {
   const { tipo, id } = useParams();
@@ -14,7 +15,6 @@ export default function VisualizaPessoa() {
     const dao = tipo === "PF" ? new PFDAO() : new PJDAO();
     const lista = dao.listar();
 
-    // 🔹 Busca unificada pelo ID
     const encontrada = lista.find((p) => p.id === id);
     if (encontrada) setPessoa(encontrada);
   }, [tipo, id]);
@@ -29,6 +29,13 @@ export default function VisualizaPessoa() {
       </div>
     );
   }
+
+  // === FORMATADOR SEGURO DE DATA ===
+  const formatarData = (data) => {
+    if (!data) return "Não informado";
+    const d = dayjs(data);
+    return d.isValid() ? d.format("DD/MM/YYYY") : "Não informado";
+  };
 
   return (
     <div
@@ -51,14 +58,14 @@ export default function VisualizaPessoa() {
           <Descriptions.Item label="Nome">{pessoa.nome}</Descriptions.Item>
           <Descriptions.Item label="E-mail">{pessoa.email}</Descriptions.Item>
 
-          {/* ➕ DATA (PF ou PJ) */}
+          {/* DATA – formatada corretamente */}
           {tipo === "PF" ? (
             <Descriptions.Item label="Data de Nascimento">
-              {pessoa.dataNascimento || "Não informado"}
+              {formatarData(pessoa.dataNascimento)}
             </Descriptions.Item>
           ) : (
             <Descriptions.Item label="Data de Registro">
-              {pessoa.dataRegistro || "Não informado"}
+              {formatarData(pessoa.dataRegistro)}
             </Descriptions.Item>
           )}
 
@@ -88,21 +95,19 @@ export default function VisualizaPessoa() {
 
           {/* Campos específicos */}
           {tipo === "PF" ? (
-            <>
-              <Descriptions.Item label="Título Eleitoral">
-                {pessoa.titulo?.numero
-                  ? `Nº ${pessoa.titulo.numero} - Zona ${pessoa.titulo.zona} / Seção ${pessoa.titulo.secao}`
-                  : "Não informado"}
-              </Descriptions.Item>
-            </>
+            <Descriptions.Item label="Título Eleitoral">
+              {pessoa.titulo?.numero
+                ? `Nº ${pessoa.titulo.numero} - Zona ${pessoa.titulo.zona} / Seção ${pessoa.titulo.secao}`
+                : "Não informado"}
+            </Descriptions.Item>
           ) : (
-            <>
-              <Descriptions.Item label="Inscrição Estadual">
-                {pessoa.ie?.numero
-                  ? `Nº ${pessoa.ie.numero} - ${pessoa.ie.estado} (${pessoa.ie.dataRegistro})`
-                  : "Não informado"}
-              </Descriptions.Item>
-            </>
+            <Descriptions.Item label="Inscrição Estadual">
+              {pessoa.ie?.numero
+                ? `Nº ${pessoa.ie.numero} - ${pessoa.ie.estado} (${formatarData(
+                    pessoa.ie.dataRegistro
+                  )})`
+                : "Não informado"}
+            </Descriptions.Item>
           )}
         </Descriptions>
 
