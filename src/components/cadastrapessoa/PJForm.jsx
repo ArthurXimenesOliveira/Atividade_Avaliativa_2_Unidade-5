@@ -28,10 +28,10 @@ export default function PJForm() {
         />
       </Form.Item>
 
-      <Form.Item
+      {/* <Form.Item
         label="Data de Registro da IE"
         name={["ie", "dataRegistro"]}
-      >
+      > */}
         <DatePicker
           style={{ width: "100%" }}
           format="YYYY-MM-DD"
