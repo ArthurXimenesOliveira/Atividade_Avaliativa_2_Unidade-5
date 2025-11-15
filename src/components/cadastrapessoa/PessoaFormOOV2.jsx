@@ -122,12 +122,10 @@ export default function PessoaFormOOV2() {
         pf.setCPF(values.cpf);
         pf.setEndereco(end);
 
-        // Data de nascimento PF
         if (values.dataNascimento) {
           pf.setDataNascimento(values.dataNascimento.format("YYYY-MM-DD"));
         }
 
-        // Título
         if (values.titulo) {
           const t = new Titulo();
           t.setNumero(values.titulo.numero);
@@ -136,7 +134,6 @@ export default function PessoaFormOOV2() {
           pf.setTitulo(t);
         }
 
-        // Telefones
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
             const fone = new Telefone();
@@ -154,12 +151,10 @@ export default function PessoaFormOOV2() {
         pj.setCNPJ(values.cnpj);
         pj.setEndereco(end);
 
-        // Data de registro PJ
         if (values.dataRegistro) {
           pj.setDataRegistro(values.dataRegistro.format("YYYY-MM-DD"));
         }
 
-        // Insc. Estadual
         if (values.ie) {
           const ie = new IE();
           ie.setNumero(values.ie.numero);
@@ -175,7 +170,6 @@ export default function PessoaFormOOV2() {
           pj.setIE(ie);
         }
 
-        // Telefones
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
             const fone = new Telefone();
@@ -188,7 +182,8 @@ export default function PessoaFormOOV2() {
         pessoa = pj;
       }
 
-      const dao = tipo === "PF" ? pfDAO : pjDAO;
+      // ✅ CORREÇÃO AQUI — troca tipo → values.tipo
+      const dao = values.tipo === "PF" ? pfDAO : pjDAO;
 
       if (editando && id) {
         dao.atualizar(id, pessoa);
@@ -273,7 +268,6 @@ export default function PessoaFormOOV2() {
             <Input placeholder="exemplo@email.com" />
           </Form.Item>
 
-          {/* DATA PF */}
           {tipo === "PF" && (
             <Form.Item
               label="Data de Nascimento"
@@ -284,7 +278,6 @@ export default function PessoaFormOOV2() {
             </Form.Item>
           )}
 
-          {/* DATA PJ */}
           {tipo === "PJ" && (
             <Form.Item
               label="Data de Registro"
