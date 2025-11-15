@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Form, Input, Button, Radio, message, DatePicker } from "antd";
+import { Form, Input, Button, Radio, DatePicker, message } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
@@ -47,7 +47,6 @@ export default function PessoaFormOOV2() {
         window.scrollTo({ top: 0, behavior: "smooth" });
 
         const valores = {
-          id: pessoa.id, // manter id para edição
           tipo: tipoParam,
           nome: pessoa.nome,
           email: pessoa.email,
@@ -57,23 +56,17 @@ export default function PessoaFormOOV2() {
 
         if (tipoParam === "PF") {
           valores.cpf = pessoa.cpf;
-
-          // ➕ ADICIONADO: carregar dataNascimento (campo da pessoa)
           valores.dataNascimento = pessoa.dataNascimento
             ? dayjs(pessoa.dataNascimento)
             : null;
-
           valores.titulo = pessoa.titulo || { numero: "", zona: "", secao: "" };
         } else {
-          const ieObj = pessoa.ie || {};
           valores.cnpj = pessoa.cnpj;
-
-          // ➕ ADICIONADO: carregar dataRegistro (campo da pessoa)
           valores.dataRegistro = pessoa.dataRegistro
             ? dayjs(pessoa.dataRegistro)
             : null;
 
-          // mantém o dataRegistro dentro da IE também (se existir)
+          const ieObj = pessoa.ie || {};
           valores.ie = {
             numero: ieObj.numero || "",
             estado: ieObj.estado || "",
@@ -98,6 +91,7 @@ export default function PessoaFormOOV2() {
     const novoTipo = e.target.value;
     setTipo(novoTipo);
     const valoresAtuais = form.getFieldsValue();
+
     form.resetFields();
     form.setFieldsValue({
       ...valoresAtuais,
@@ -128,25 +122,12 @@ export default function PessoaFormOOV2() {
         pf.setCPF(values.cpf);
         pf.setEndereco(end);
 
-        // ⭐ manter ID no objeto para edição (se a classe PF tiver setId)
-        if (values.id && typeof pf.setId === "function") {
-          pf.setId(values.id);
-        } else if (values.id) {
-          // se não existir setId, atribui diretamente (compatibilidade)
-          pf.id = values.id;
-        }
-
-        // ➕ ADICIONADO: salvar dataNascimento no atributo 'data' da pessoa
+        // Data de nascimento PF
         if (values.dataNascimento) {
-          const dn =
-            typeof values.dataNascimento.format === "function"
-              ? values.dataNascimento.format("YYYY-MM-DD")
-              : values.dataNascimento;
-          // usa setData (implementado em Pessoa) para persistir
-          if (typeof pf.setData === "function") pf.setData(dn);
-          else pf.data = dn;
+          pf.setDataNascimento(values.dataNascimento.format("YYYY-MM-DD"));
         }
 
+        // Título
         if (values.titulo) {
           const t = new Titulo();
           t.setNumero(values.titulo.numero);
@@ -155,6 +136,7 @@ export default function PessoaFormOOV2() {
           pf.setTitulo(t);
         }
 
+        // Telefones
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
             const fone = new Telefone();
@@ -172,39 +154,28 @@ export default function PessoaFormOOV2() {
         pj.setCNPJ(values.cnpj);
         pj.setEndereco(end);
 
-        // ⭐ manter ID no objeto para edição (se a classe PJ tiver setId)
-        if (values.id && typeof pj.setId === "function") {
-          pj.setId(values.id);
-        } else if (values.id) {
-          pj.id = values.id;
-        }
-
-        // ➕ ADICIONADO: salvar dataRegistro no atributo 'data' da pessoa (não confundir com IE.dataRegistro)
+        // Data de registro PJ
         if (values.dataRegistro) {
-          const dr =
-            typeof values.dataRegistro.format === "function"
-              ? values.dataRegistro.format("YYYY-MM-DD")
-              : values.dataRegistro;
-          if (typeof pj.setData === "function") pj.setData(dr);
-          else pj.data = dr;
+          pj.setDataRegistro(values.dataRegistro.format("YYYY-MM-DD"));
         }
 
+        // Insc. Estadual
         if (values.ie) {
           const ie = new IE();
           ie.setNumero(values.ie.numero);
           ie.setEstado(values.ie.estado);
 
-          // 👇 converte dayjs → string para salvar no DAO
-          const drIE = values.ie.dataRegistro;
+          const dr = values.ie.dataRegistro;
           const dataRegistroIE =
-            drIE && typeof drIE === "object" && typeof drIE.format === "function"
-              ? drIE.format("YYYY-MM-DD")
-              : drIE || "";
+            dr && typeof dr === "object" && typeof dr.format === "function"
+              ? dr.format("YYYY-MM-DD")
+              : dr || "";
 
           ie.setDataRegistro(dataRegistroIE);
           pj.setIE(ie);
         }
 
+        // Telefones
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
             const fone = new Telefone();
@@ -218,20 +189,12 @@ export default function PessoaFormOOV2() {
       }
 
       const dao = tipo === "PF" ? pfDAO : pjDAO;
+
       if (editando && id) {
-        await dao.atualizar(id, pessoa);
+        dao.atualizar(id, pessoa);
         message.success("Registro atualizado com sucesso!");
       } else {
-        // se não tiver id, gerar para manter consistência com seus DAOs locais
-        if (!pessoa.id) {
-          const novoId =
-            typeof pessoa.getId === "function"
-              ? pessoa.getId()
-              : Date.now().toString();
-          if (typeof pessoa.setId === "function") pessoa.setId(novoId);
-          else pessoa.id = novoId;
-        }
-        await dao.salvar(pessoa);
+        dao.salvar(pessoa);
         message.success("Registro criado com sucesso!");
       }
 
@@ -239,7 +202,7 @@ export default function PessoaFormOOV2() {
       setTimeout(() => navigate("/listar"), 600);
     } catch (erro) {
       console.error("❌ Erro ao salvar:", erro);
-      message.error("Erro ao salvar registro: " + (erro.message || erro));
+      message.error("Erro ao salvar registro: " + erro.message);
     }
   }
 
@@ -279,11 +242,6 @@ export default function PessoaFormOOV2() {
           onFinish={onFinish}
           scrollToFirstError
         >
-          {/* campo escondido para manter o id */}
-          <Form.Item name="id" hidden>
-            <Input />
-          </Form.Item>
-
           <Form.Item
             label="Tipo de Pessoa"
             name="tipo"
@@ -315,12 +273,23 @@ export default function PessoaFormOOV2() {
             <Input placeholder="exemplo@email.com" />
           </Form.Item>
 
-          {/* ➕ Campo Data de Nascimento (PF) */}
+          {/* DATA PF */}
           {tipo === "PF" && (
             <Form.Item
               label="Data de Nascimento"
               name="dataNascimento"
               rules={[{ required: true, message: "Informe a data de nascimento!" }]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
+            </Form.Item>
+          )}
+
+          {/* DATA PJ */}
+          {tipo === "PJ" && (
+            <Form.Item
+              label="Data de Registro"
+              name="dataRegistro"
+              rules={[{ required: true, message: "Informe a data de registro!" }]}
             >
               <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
@@ -332,29 +301,16 @@ export default function PessoaFormOOV2() {
               name="cpf"
               rules={[{ required: true, message: "Informe o CPF!" }]}
             >
-              <Input placeholder="Somente números" maxLength={11}/>
+              <Input placeholder="Somente números" maxLength={11} />
             </Form.Item>
           ) : (
-            <>
-              {/* ➕ Campo Data de Registro (Pessoa Jurídica) */}
-              {tipo === "PJ" && (
-                <Form.Item
-                  label="Data de Registro"
-                  name="dataRegistro"
-                  rules={[{ required: true, message: "Informe a data de registro!" }]}
-                >
-                  <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
-                </Form.Item>
-              )}
-
-              <Form.Item
-                label="CNPJ"
-                name="cnpj"
-                rules={[{ required: true, message: "Informe o CNPJ!" }]}
-              >
-                <Input placeholder="Somente números" maxLength={18}/>
-              </Form.Item>
-            </>
+            <Form.Item
+              label="CNPJ"
+              name="cnpj"
+              rules={[{ required: true, message: "Informe o CNPJ!" }]}
+            >
+              <Input placeholder="Somente números" maxLength={18} />
+            </Form.Item>
           )}
 
           <EnderecoForm />
