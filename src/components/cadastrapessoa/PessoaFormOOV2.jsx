@@ -46,6 +46,7 @@ export default function PessoaFormOOV2() {
         window.scrollTo({ top: 0, behavior: "smooth" });
 
         const valores = {
+          id: pessoa.id, // <-- garante que o form carrega o id
           tipo: tipoParam,
           nome: pessoa.nome,
           email: pessoa.email,
@@ -68,8 +69,6 @@ export default function PessoaFormOOV2() {
 
         if (tipoParam === "PJ") {
           valores.cnpj = pessoa.cnpj;
-
-          // somente UM campo de data
           valores.dataRegistro = pessoa.dataRegistro
             ? dayjs(pessoa.dataRegistro)
             : null;
@@ -84,6 +83,7 @@ export default function PessoaFormOOV2() {
           };
         }
 
+        // seta somente campos válidos
         form.setFieldsValue(valores);
       } else {
         message.error("Pessoa não encontrada!");
@@ -113,9 +113,12 @@ export default function PessoaFormOOV2() {
   // =========================
   async function onFinish(values) {
     try {
-      let pessoa;
+      // validação final (força campos obrigatórios do form)
+      await form.validateFields();
 
+      let pessoaObj;
       const endVals = values.endereco || {};
+
       const end = new Endereco();
       end.setCep(endVals.cep);
       end.setLogradouro(endVals.logradouro);
@@ -124,15 +127,22 @@ export default function PessoaFormOOV2() {
       end.setUf(endVals.uf);
       end.setRegiao(endVals.regiao);
 
-      if (values.tipo === "PF") {
+      if ((values.tipo || tipo) === "PF") {
         const pf = new PF();
         pf.setNome(values.nome);
         pf.setEmail(values.email);
         pf.setCPF(values.cpf);
         pf.setEndereco(end);
 
+        // dataNascimento (se existir)
         if (values.dataNascimento) {
-          pf.setDataNascimento(values.dataNascimento.format("YYYY-MM-DD"));
+          const dn =
+            typeof values.dataNascimento.format === "function"
+              ? values.dataNascimento.format("YYYY-MM-DD")
+              : values.dataNascimento;
+          if (typeof pf.setData === "function") pf.setData(dn);
+          if (typeof pf.setDataNascimento === "function")
+            pf.setDataNascimento(dn);
         }
 
         if (values.titulo) {
@@ -152,7 +162,13 @@ export default function PessoaFormOOV2() {
           });
         }
 
-        pessoa = pf;
+        // garante id no objeto (opcional, alguns DAOs usam direto)
+        if (values.id) {
+          if (typeof pf.setId === "function") pf.setId(values.id);
+          else pf.id = values.id;
+        }
+
+        pessoaObj = pf;
       } else {
         const pj = new PJ();
         pj.setNome(values.nome);
@@ -160,19 +176,28 @@ export default function PessoaFormOOV2() {
         pj.setCNPJ(values.cnpj);
         pj.setEndereco(end);
 
+        // dataRegistro (se existir)
         if (values.dataRegistro) {
-          pj.setDataRegistro(values.dataRegistro.format("YYYY-MM-DD"));
+          const dr =
+            typeof values.dataRegistro.format === "function"
+              ? values.dataRegistro.format("YYYY-MM-DD")
+              : values.dataRegistro;
+          if (typeof pj.setData === "function") pj.setData(dr);
+          if (typeof pj.setDataRegistro === "function")
+            pj.setDataRegistro(dr);
         }
 
         if (values.ie) {
           const ie = new IE();
           ie.setNumero(values.ie.numero || "");
           ie.setEstado(values.ie.estado || "");
-
           if (values.ie.dataRegistro) {
-            ie.setDataRegistro(values.ie.dataRegistro.format("YYYY-MM-DD"));
+            const drIE =
+              typeof values.ie.dataRegistro.format === "function"
+                ? values.ie.dataRegistro.format("YYYY-MM-DD")
+                : values.ie.dataRegistro;
+            ie.setDataRegistro(drIE);
           }
-
           pj.setIE(ie);
         }
 
@@ -185,24 +210,46 @@ export default function PessoaFormOOV2() {
           });
         }
 
-        pessoa = pj;
+        if (values.id) {
+          if (typeof pj.setId === "function") pj.setId(values.id);
+          else pj.id = values.id;
+        }
+
+        pessoaObj = pj;
       }
 
-      const dao = values.tipo === "PF" ? pfDAO : pjDAO;
+      // escolhe DAO com fallback
+      const dao = (values.tipo || tipo) === "PF" ? pfDAO : pjDAO;
 
-      if (editando && id) {
-        dao.atualizar(id, pessoa);
+      // identifica id alvo (prioriza o id do form, senão param)
+      const targetId = values.id ?? id;
+
+      console.debug("Salvando/Atualizando pessoa:", {
+        tipo: values.tipo || tipo,
+        id: targetId,
+        objeto: pessoaObj,
+      });
+
+      // usa await para compatibilidade sync/async
+      if (editando && targetId) {
+        // se o DAO retornar promise, await; se não, await resolve imediatamente
+        await dao.atualizar(targetId, pessoaObj);
         message.success("Registro atualizado com sucesso!");
       } else {
-        dao.salvar(pessoa);
+        await dao.salvar(pessoaObj);
         message.success("Registro criado com sucesso!");
       }
 
       form.resetFields();
-      setTimeout(() => navigate("/listar"), 500);
+
+      // navega para a lista — sem depender de setTimeout longo
+      setTimeout(() => navigate("/listar"), 250);
     } catch (erro) {
       console.error("❌ Erro ao salvar:", erro);
-      message.error("Erro ao salvar registro: " + erro.message);
+      // mostra a mensagem; se for erro do DAO, mostra a mensagem ou uma genérica
+      message.error(
+        "Erro ao salvar registro: " + (erro?.message || JSON.stringify(erro))
+      );
     }
   }
 
@@ -242,6 +289,11 @@ export default function PessoaFormOOV2() {
           onFinish={onFinish}
           scrollToFirstError
         >
+          {/* ID oculto para garantir edição */}
+          <Form.Item name="id" hidden>
+            <Input />
+          </Form.Item>
+
           <Form.Item
             label="Tipo de Pessoa"
             name="tipo"
