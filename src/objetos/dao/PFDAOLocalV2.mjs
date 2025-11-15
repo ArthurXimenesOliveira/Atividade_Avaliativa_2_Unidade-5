@@ -16,7 +16,6 @@ export default class PFDAO {
   }
 
   gerarId() {
-    // Gera ID único (timestamp + random)
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
   }
 
@@ -27,10 +26,14 @@ export default class PFDAO {
     const telefones = pf.getTelefones?.() || [];
 
     return {
-      id: pf.id ?? this.gerarId(), // ← garante ID único
+      id: pf.id ?? this.gerarId(),
       nome: pf.getNome?.(),
       email: pf.getEmail?.(),
       cpf: pf.getCPF?.(),
+
+      // ADICIONADO
+      dataNascimento: pf.getData?.(),
+
       endereco: end
         ? {
             cep: end.getCep?.(),
