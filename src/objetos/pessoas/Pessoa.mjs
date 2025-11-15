@@ -7,7 +7,7 @@ export default class Pessoa {
   #endereco;
   #telefones = [];
 
-  // ➕ ADICIONADO
+  // ADICIONADO
   #data; // PF -> dataNascimento | PJ -> dataRegistro
 
   setNome(nome) {
@@ -60,7 +60,7 @@ export default class Pessoa {
     return this.#telefones;
   }
 
-  // ➕ ADICIONADO
+  // ADICIONADO
   setData(data) {
     if (data) {
       this.#data = data;
@@ -69,7 +69,7 @@ export default class Pessoa {
     return false;
   }
 
-  // ➕ ADICIONADO
+  // ADICIONADO
   getData() {
     return this.#data;
   }
