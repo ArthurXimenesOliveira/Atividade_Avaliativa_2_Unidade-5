@@ -51,6 +51,18 @@ export default function VisualizaPessoa() {
           <Descriptions.Item label="Nome">{pessoa.nome}</Descriptions.Item>
           <Descriptions.Item label="E-mail">{pessoa.email}</Descriptions.Item>
 
+          {/* ➕ DATA (PF ou PJ) */}
+          {tipo === "PF" ? (
+            <Descriptions.Item label="Data de Nascimento">
+              {pessoa.dataNascimento || "Não informado"}
+            </Descriptions.Item>
+          ) : (
+            <Descriptions.Item label="Data de Registro">
+              {pessoa.dataRegistro || "Não informado"}
+            </Descriptions.Item>
+          )}
+
+          {/* DOCUMENTO */}
           {tipo === "PF" ? (
             <Descriptions.Item label="CPF">{pessoa.cpf}</Descriptions.Item>
           ) : (
