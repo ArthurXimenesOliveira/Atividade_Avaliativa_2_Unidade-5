@@ -32,7 +32,7 @@ export default function PessoaFormOOV2() {
   const pjDAO = new PJDAO();
 
   // =========================
-  // EFEITO: Carregar dados no modo edição
+  // CARREGAR PARA EDITAR
   // =========================
   useEffect(() => {
     if (id && tipoParam) {
@@ -40,8 +40,7 @@ export default function PessoaFormOOV2() {
       setTipo(tipoParam);
 
       const dao = tipoParam === "PF" ? pfDAO : pjDAO;
-      const lista = dao.listar();
-      const pessoa = lista.find((p) => p.id === id);
+      const pessoa = dao.listar().find((p) => p.id === id);
 
       if (pessoa) {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -59,9 +58,18 @@ export default function PessoaFormOOV2() {
           valores.dataNascimento = pessoa.dataNascimento
             ? dayjs(pessoa.dataNascimento)
             : null;
-          valores.titulo = pessoa.titulo || { numero: "", zona: "", secao: "" };
-        } else {
+
+          valores.titulo = pessoa.titulo || {
+            numero: "",
+            zona: "",
+            secao: "",
+          };
+        }
+
+        if (tipoParam === "PJ") {
           valores.cnpj = pessoa.cnpj;
+
+          // somente UM campo de data
           valores.dataRegistro = pessoa.dataRegistro
             ? dayjs(pessoa.dataRegistro)
             : null;
@@ -85,16 +93,17 @@ export default function PessoaFormOOV2() {
   }, [id, tipoParam]);
 
   // =========================
-  // TROCA PF/PJ
+  // TROCAR PF/PJ
   // =========================
   function onChangeTipo(e) {
     const novoTipo = e.target.value;
     setTipo(novoTipo);
-    const valoresAtuais = form.getFieldsValue();
 
+    const valores = form.getFieldsValue();
     form.resetFields();
+
     form.setFieldsValue({
-      ...valoresAtuais,
+      ...valores,
       tipo: novoTipo,
     });
   }
@@ -105,8 +114,8 @@ export default function PessoaFormOOV2() {
   async function onFinish(values) {
     try {
       let pessoa;
-      const endVals = values.endereco || {};
 
+      const endVals = values.endereco || {};
       const end = new Endereco();
       end.setCep(endVals.cep);
       end.setLogradouro(endVals.logradouro);
@@ -128,18 +137,18 @@ export default function PessoaFormOOV2() {
 
         if (values.titulo) {
           const t = new Titulo();
-          t.setNumero(values.titulo.numero);
-          t.setZona(values.titulo.zona);
-          t.setSecao(values.titulo.secao);
+          t.setNumero(values.titulo.numero || "");
+          t.setZona(values.titulo.zona || "");
+          t.setSecao(values.titulo.secao || "");
           pf.setTitulo(t);
         }
 
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
-            const fone = new Telefone();
-            fone.setDdd(tel.ddd);
-            fone.setNumero(tel.numero);
-            pf.addTelefone(fone);
+            const f = new Telefone();
+            f.setDdd(tel.ddd);
+            f.setNumero(tel.numero);
+            pf.addTelefone(f);
           });
         }
 
@@ -157,32 +166,28 @@ export default function PessoaFormOOV2() {
 
         if (values.ie) {
           const ie = new IE();
-          ie.setNumero(values.ie.numero);
-          ie.setEstado(values.ie.estado);
+          ie.setNumero(values.ie.numero || "");
+          ie.setEstado(values.ie.estado || "");
 
-          const dr = values.ie.dataRegistro;
-          const dataRegistroIE =
-            dr && typeof dr === "object" && typeof dr.format === "function"
-              ? dr.format("YYYY-MM-DD")
-              : dr || "";
+          if (values.ie.dataRegistro) {
+            ie.setDataRegistro(values.ie.dataRegistro.format("YYYY-MM-DD"));
+          }
 
-          ie.setDataRegistro(dataRegistroIE);
           pj.setIE(ie);
         }
 
         if (values.telefones?.length > 0) {
           values.telefones.forEach((tel) => {
-            const fone = new Telefone();
-            fone.setDdd(tel.ddd);
-            fone.setNumero(tel.numero);
-            pj.addTelefone(fone);
+            const f = new Telefone();
+            f.setDdd(tel.ddd);
+            f.setNumero(tel.numero);
+            pj.addTelefone(f);
           });
         }
 
         pessoa = pj;
       }
 
-      // ✅ CORREÇÃO AQUI — troca tipo → values.tipo
       const dao = values.tipo === "PF" ? pfDAO : pjDAO;
 
       if (editando && id) {
@@ -194,7 +199,7 @@ export default function PessoaFormOOV2() {
       }
 
       form.resetFields();
-      setTimeout(() => navigate("/listar"), 600);
+      setTimeout(() => navigate("/listar"), 500);
     } catch (erro) {
       console.error("❌ Erro ao salvar:", erro);
       message.error("Erro ao salvar registro: " + erro.message);
