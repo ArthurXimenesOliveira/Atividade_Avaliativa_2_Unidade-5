@@ -7,6 +7,9 @@ export default class Pessoa {
   #endereco;
   #telefones = [];
 
+  // ➕ ADICIONADO
+  #data; // PF -> dataNascimento | PJ -> dataRegistro
+
   setNome(nome) {
     if (nome) {
       this.#nome = nome;
@@ -55,5 +58,19 @@ export default class Pessoa {
 
   getTelefones() {
     return this.#telefones;
+  }
+
+  // ➕ ADICIONADO
+  setData(data) {
+    if (data) {
+      this.#data = data;
+      return true;
+    }
+    return false;
+  }
+
+  // ➕ ADICIONADO
+  getData() {
+    return this.#data;
   }
 }
