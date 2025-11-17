@@ -34,6 +34,9 @@ export default class PJDAO {
       email: pj.getEmail?.(),
       cnpj: pj.getCNPJ?.(),
 
+      // NOVO CAMPO INDEPENDENTE DA IE
+      dataRegistro: pj.getData?.(),
+
       endereco: end
         ? {
             cep: end.getCep?.(),
@@ -54,14 +57,7 @@ export default class PJDAO {
         ? {
             numero: ie.getNumero?.(),
             estado: ie.getEstado?.(),
-
-            // Garantindo que dataRegistro sempre seja uma string (ISO)
-            dataRegistro: (() => {
-              const d = ie.getDataRegistro?.();
-              if (!d) return null;
-              if (d instanceof Date) return d.toISOString();
-              return d; // já é string
-            })(),
+            dataRegistro: ie.getDataRegistro?.(),
           }
         : {},
     };
@@ -83,8 +79,11 @@ export default class PJDAO {
     obj.id = id;
 
     const idx = lista.findIndex((p) => p.id === id);
-    if (idx >= 0) lista[idx] = obj;
-    else lista.push(obj);
+    if (idx >= 0) {
+      lista[idx] = obj;
+    } else {
+      lista.push(obj);
+    }
 
     localStorage.setItem(this.chave, JSON.stringify(lista));
   }
